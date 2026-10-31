@@ -1,0 +1,77 @@
+update_advance_plan:
+  name: Zmień plan zaliczek G.EN. Gaz
+  description: Wyślij formularz zmiany planu zaliczek do eBOK G.EN. Gaz. Wysyłane dopiero po ręcznym wykonaniu akcji.
+  fields:
+    reason:
+      name: Powód
+      description: Powód zmiany, maksymalnie 250 znaków.
+      required: true
+      selector:
+        text:
+          multiline: true
+    reading_value:
+      name: Odczyt licznika
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 999999
+          mode: box
+    reading_date:
+      name: Data odczytu
+      required: true
+      selector:
+        date: {}
+    is_blank_form_required:
+      name: Wymagany pusty formularz
+      default: false
+      selector:
+        boolean: {}
+    advance_1:
+      name: Zaliczka 1
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    advance_2:
+      name: Zaliczka 2
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    advance_3:
+      name: Zaliczka 3
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    advance_4:
+      name: Zaliczka 4
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    advance_5:
+      name: Zaliczka 5
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    advance_6:
+      name: Zaliczka 6
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
