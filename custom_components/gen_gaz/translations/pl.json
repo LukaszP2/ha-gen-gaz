@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "G.EN. Gaz Energia",
+        "description": "Podaj dane logowania do eBOK G.EN. Gaz Energia.",
+        "data": {
+          "customer_id": "Identyfikator klienta",
+          "password": "Hasło"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponowne uwierzytelnienie G.EN. Gaz Energia",
+        "description": "Wprowadź nowe hasło dla klienta {customer_id}.",
+        "data": {
+          "password": "Hasło"
+        }
+      },
+      "reconfigure": {
+        "title": "Zmień konfigurację G.EN. Gaz Energia",
+        "description": "Zaktualizuj dane logowania dla klienta {customer_id}.",
+        "data": {
+          "customer_id": "Identyfikator klienta",
+          "password": "Hasło"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z eBOK G.EN.",
+      "invalid_auth": "Nieprawidłowy identyfikator klienta lub hasło",
+      "unknown": "Wystąpił nieoczekiwany błąd"
+    },
+    "abort": {
+      "already_configured": "Ten klient jest już skonfigurowany.",
+      "reauth_successful": "Ponowne uwierzytelnienie zakończyło się pomyślnie.",
+      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się.",
+      "reconfigure_successful": "Zmiana konfiguracji zakończyła się pomyślnie.",
+      "reconfigure_entry_not_found": "Nie znaleziono wpisu do rekonfiguracji."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ustawienia G.EN. Gaz Energia",
+        "description": "Skonfiguruj częstotliwość odpytywania eBOK G.EN. Gaz.",
+        "data": {
+          "scan_interval": "Interwał odświeżania (minuty)",
+          "enable_analytics": "Włącz encje analityczne"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_balance": { "name": "Łączne saldo" },
+      "balance": { "name": "Saldo" },
+      "amount_to_pay": { "name": "Do zapłaty" },
+      "last_invoice": { "name": "Ostatnia faktura" },
+      "unread": { "name": "Nieprzeczytane wiadomości" },
+      "tariff": { "name": "Taryfa" },
+      "contract": { "name": "Numer umowy" },
+      "meter_reading": { "name": "Stan licznika gazu" },
+      "meter_number": { "name": "Numer licznika gazu" },
+      "previous_reading": { "name": "Poprzedni odczyt gazu" },
+      "consumption_since_reading": { "name": "Zużycie od poprzedniego odczytu (m³)" },
+      "consumption_since_reading_kwh": { "name": "Zużycie od poprzedniego odczytu (kWh)" },
+      "conversion_factor": { "name": "Przelicznik m³ → kWh" },
+      "next_advance": { "name": "Najbliższa zaliczka" },
+      "next_advance_m3": { "name": "Najbliższa zaliczka (m³)" },
+      "next_advance_kwh": { "name": "Najbliższa zaliczka (kWh)" },
+      "advance_plan_total": { "name": "Plan zaliczkowy — suma" },
+      "advance_plan_m3": { "name": "Plan zaliczkowy — m³" },
+      "advance_plan_kwh": { "name": "Plan zaliczkowy — kWh" },
+      "history_total_m3": { "name": "Historia zużycia gazu (m³)" },
+      "history_total_kwh": { "name": "Historia zużycia gazu (kWh)" },
+      "actual_invoice_cost_6m": { "name": "Koszt faktur — 6 mies." },
+      "actual_invoice_cost_12m": { "name": "Koszt faktur — 12 mies." },
+      "actual_consumption_12m_m3": { "name": "Faktyczne zużycie — 12 mies. (m³)" },
+      "actual_consumption_12m_kwh": { "name": "Faktyczne zużycie — 12 mies. (kWh)" },
+      "actual_cost_per_m3": { "name": "Faktyczny koszt m³" },
+      "actual_cost_per_kwh": { "name": "Faktyczny koszt kWh" },
+      "plan_cost_per_m3": { "name": "Planowany koszt m³" },
+      "plan_cost_per_kwh": { "name": "Planowany koszt kWh" },
+      "actual_vs_plan_6m": { "name": "Wykonanie planu 6M" }
+    }
+  }
+}

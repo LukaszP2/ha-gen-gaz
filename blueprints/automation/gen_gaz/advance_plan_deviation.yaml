@@ -1,0 +1,114 @@
+blueprint:
+  name: "G.EN. Gaz — Ostrzeżenie o niedopłacie w planie zaliczkowym"
+  description: >-
+    Monitoruje różnicę między rzeczywistym kosztem zużycia gazu a sumą wpłaconych zaliczek
+    (sensor Rzeczywiste 6M vs plan 6M). Gdy niedopłata przekracza ustalony próg (np. 150 PLN),
+    wysyła powiadomienie z zaleceniem skorygowania planu zaliczek w eBOK.
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensor porównania planu G.EN. Gaz
+      icon: mdi:scale-balance
+      description: Wybierz sensor porównania kosztu rzeczywistego z planem zaliczek.
+      input:
+        deviation_sensor:
+          name: Sensor Rzeczywiste 6M vs plan 6M
+          description: Sensor raportujący różnicę rzeczywiste koszty minus zaliczki w PLN (np. sensor.g_en_gaz_energia_*_actual_vs_plan_6m).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: monetary
+    threshold_section:
+      name: Progi i harmonogram
+      icon: mdi:tune-vertical
+      description: Określ dopuszczalny próg niedopłaty oraz harmonogram sprawdzania.
+      input:
+        threshold_amount:
+          name: Próg niedopłaty (PLN)
+          description: Kwota przewyższenia zaliczek przez koszt rzeczywisty, powyżej której zostanie wysłany alert.
+          default: 150
+          selector:
+            number:
+              min: 50
+              max: 2000
+              step: 25
+              unit_of_measurement: PLN
+              mode: box
+        check_time:
+          name: Godzina sprawdzania
+          description: Godzina cotygodniowej weryfikacji stanu planu zaliczkowego.
+          default: "10:00:00"
+          selector:
+            time: {}
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje (opcjonalnie)
+          description: Własne akcje wykonywane w momencie wykrycia przekroczenia.
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  # Sprawdzanie cykliczne raz w tygodniu (np. w poniedziałki)
+  - trigger: time
+    at: !input check_time
+  # Oraz reakcja na bezpośrednią zmianę stanu sensora
+  - trigger: state
+    entity_id: !input deviation_sensor
+
+variables:
+  dev_sensor: !input deviation_sensor
+  threshold: !input threshold_amount
+
+condition:
+  # Sprawdź, czy dzisiaj jest poniedziałek (jeśli trigger to czas) lub czy to zmiana stanu
+  - condition: template
+    value_template: >-
+      {% if trigger.platform == 'time' %}
+        {{ now().weekday() == 0 }}
+      {% else %}
+        true
+      {% endif %}
+  # Sprawdź dostępność i przekroczenie progu
+  - condition: template
+    value_template: >-
+      {% set val = states(dev_sensor) %}
+      {% if val in ['unavailable', 'unknown', 'none', ''] %}
+        false
+      {% else %}
+        {{ (val | float(0)) >= (threshold | float(0)) }}
+      {% endif %}
+
+action:
+  - alias: "Wyślij ostrzeżenie o niedopłacie w zaliczkach"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "⚠️ G.EN. Gaz: Ryzyko dopłaty do rachunku"
+    message: >-
+      {% set diff = states(dev_sensor) | float(0) %}
+      Twoje rzeczywiste zużycie gazu przewyższa wpłacone zaliczki o {{ diff | round(2) }} PLN (próg: {{ threshold }} PLN).
+      Rozważ korektę planu zaliczek w eBOK G.EN. Gaz, aby uniknąć wysokiej dopłaty przy fakturze rozliczeniowej.
+    data:
+      tag: "gen-gaz-advance-deviation-{{ dev_sensor }}"
+      notification_icon: "mdi:cash-fast"
+      channel: "Billing"
+  - sequence: !input custom_actions

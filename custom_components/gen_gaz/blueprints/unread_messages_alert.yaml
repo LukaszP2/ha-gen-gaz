@@ -1,0 +1,82 @@
+blueprint:
+  name: "G.EN. Gaz — Powiadomienie o nowej wiadomości w eBOK"
+  description: >-
+    Wysyła powiadomienie, gdy w portalu eBOK G.EN. Gaz Energia pojawi się
+    nowa nieprzeczytana korespondencja od operatora (pisma urzędowe, zmiany taryf,
+    zawiadomienia o przeglądach lub pracach sieciowych).
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensor wiadomości G.EN. Gaz
+      icon: mdi:email-alert
+      description: Wybierz sensor nieprzeczytanych wiadomości z integracji G.EN. Gaz.
+      input:
+        unread_sensor:
+          name: Sensor nieprzeczytanych wiadomości
+          description: Sensor raportujący liczbę nieprzeczytanych wiadomości (np. sensor.g_en_gaz_energia_*_unread_messages).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje (opcjonalnie)
+          description: Własne akcje wykonywane po wykryciu nowej wiadomości.
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: state
+    entity_id: !input unread_sensor
+
+variables:
+  msg_sensor: !input unread_sensor
+
+condition:
+  # Uruchom tylko, gdy liczba wiadomości jest większa niż 0 i wzrosła względem poprzedniego stanu
+  - condition: template
+    value_template: >-
+      {% set cur = states(msg_sensor) %}
+      {% if cur in ['unavailable', 'unknown', 'none', ''] %}
+        false
+      {% else %}
+        {% set cur_int = cur | int(0) %}
+        {% set prev_int = trigger.from_state.state | int(0) if trigger.from_state is defined and trigger.from_state.state not in ['unavailable', 'unknown', 'none', ''] else 0 %}
+        {{ cur_int > 0 and cur_int > prev_int }}
+      {% endif %}
+
+action:
+  - alias: "Wyślij powiadomienie o nowej wiadomości"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "📬 G.EN. Gaz: Nowa wiadomość w eBOK"
+    message: >-
+      {% set count = states(msg_sensor) | int(0) %}
+      W portalu eBOK G.EN. Gaz Energia oczekuje {{ count }} {% if count == 1 %}nieprzeczytana wiadomość{% elif count in [2, 3, 4] %}nieprzeczytane wiadomości{% else %}nieprzeczytanych wiadomości{% endif %}.
+    data:
+      tag: "gen-gaz-unread-msg-{{ msg_sensor }}"
+      notification_icon: "mdi:email-seal"
+      actions:
+        - action: "URI"
+          title: "Zaloguj do eBOK"
+          uri: "https://ebok.gen.com.pl"
+  - sequence: !input custom_actions

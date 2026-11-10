@@ -1,0 +1,145 @@
+blueprint:
+  name: "G.EN. Gaz — Przypomnienie o terminie płatności faktury / zaliczki"
+  description: >-
+    Codziennie o wybranej godzinie sprawdza termin płatności najnowszej faktury lub zaliczki
+    G.EN. Gaz Energia i wysyła powiadomienie na telefon z konfigurowalnym wyprzedzeniem
+    (np. 3 dni przed i/lub 1 dzień przed), jeśli należność nie została jeszcze opłacona.
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensory G.EN. Gaz
+      icon: mdi:gas-cylinder
+      description: Wybierz sensory należności i faktury z integracji G.EN. Gaz.
+      input:
+        amount_to_pay_sensor:
+          name: Sensor kwoty do zapłaty
+          description: Sensor raportujący sumę nieopłaconych należności w PLN (np. sensor.g_en_gaz_energia_*_amount_to_pay).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: monetary
+        last_invoice_sensor:
+          name: Sensor ostatniej faktury
+          description: Sensor raportujący kwotę ostatniej faktury i posiadający atrybut payment_deadline (np. sensor.g_en_gaz_energia_*_last_invoice).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: monetary
+    schedule_section:
+      name: Harmonogram i wyprzedzenie
+      icon: mdi:clock-outline
+      description: Określ, kiedy i z jakim wyprzedzeniem chcesz otrzymać przypomnienie.
+      input:
+        reminder_time:
+          name: Godzina powiadomienia
+          description: Godzina, o której ma nastąpić sprawdzenie i ewentualne wysłanie alertu.
+          default: "09:00:00"
+          selector:
+            time: {}
+        days_before:
+          name: Dni wyprzedzenia
+          description: Na ile dni przed upływem terminu płatności wysłać główne przypomnienie.
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 14
+              unit_of_measurement: dni
+              mode: slider
+        notify_day_before:
+          name: Dodatkowe przypomnienie 1 dzień przed
+          description: Czy wysłać także dodatkowy alert dzień przed ostatecznym terminem płatności.
+          default: true
+          selector:
+            boolean: {}
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje (opcjonalnie)
+          description: Własne akcje wykonywane w momencie przypomnienia (np. głośnik TTS, dioda LED).
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: time
+    at: !input reminder_time
+
+variables:
+  amount_sensor: !input amount_to_pay_sensor
+  invoice_sensor: !input last_invoice_sensor
+  days_before_input: !input days_before
+  day_before_enabled: !input notify_day_before
+
+condition:
+  # Sprawdź, czy sensory są dostępne i czy istnieje nieopłacona kwota
+  - condition: template
+    value_template: >-
+      {% set amt = states(amount_sensor) %}
+      {% if amt in ['unavailable', 'unknown', 'none', ''] %}
+        false
+      {% else %}
+        {{ (amt | float(0)) > 0 }}
+      {% endif %}
+  # Sprawdź, czy data terminu płatności pasuje do wybranego wyprzedzenia
+  - condition: template
+    value_template: >-
+      {% set deadline_str = state_attr(invoice_sensor, 'payment_deadline') %}
+      {% if not deadline_str %}
+        false
+      {% else %}
+        {% set dt = as_datetime(deadline_str) %}
+        {% if dt is none %}
+          false
+        {% else %}
+          {% set target_date = dt.date() %}
+          {% set today = now().date() %}
+          {% set diff = (target_date - today).days %}
+          {{ diff == (days_before_input | int) or (day_before_enabled and diff == 1) or diff == 0 }}
+        {% endif %}
+      {% endif %}
+
+action:
+  - alias: "Wyślij przypomnienie o terminie płatności"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "🔥 G.EN. Gaz: Zbliża się termin płatności"
+    message: >-
+      {% set deadline_str = state_attr(invoice_sensor, 'payment_deadline') %}
+      {% set dt = as_datetime(deadline_str) %}
+      {% set target_date = dt.date() if dt is not none else deadline_str %}
+      {% set diff = (target_date - now().date()).days if dt is not none else 0 %}
+      {% set amt = states(amount_sensor) %}
+      {% set inv_no = state_attr(invoice_sensor, 'invoice_number') %}
+      {% if diff == 0 %}
+        Dzisiaj upływa termin płatności rachunku za gaz{% if inv_no %} (faktura {{ inv_no }}){% endif %} na kwotę {{ amt }} PLN!
+      {% elif diff == 1 %}
+        Jutro ({{ target_date }}) upływa termin płatności za gaz{% if inv_no %} (faktura {{ inv_no }}){% endif %}. Kwota do zapłaty: {{ amt }} PLN.
+      {% else %}
+        Za {{ diff }} dni ({{ target_date }}) upływa termin płatności za gaz{% if inv_no %} (faktura {{ inv_no }}){% endif %}. Kwota do zapłaty: {{ amt }} PLN.
+      {% endif %}
+    data:
+      tag: "gen-gaz-payment-{{ invoice_sensor }}"
+      notification_icon: "mdi:gas-burner"
+      channel: "Billing"
+  - sequence: !input custom_actions

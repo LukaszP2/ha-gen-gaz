@@ -1,0 +1,117 @@
+blueprint:
+  name: "G.EN. Gaz — Przypomnienie o podaniu odczytu licznika"
+  description: >-
+    Przypomina o konieczności spisania i przekazania bieżącego stanu gazomierza
+    do G.EN. Gaz Energia. Może wyzwalać się cyklicznie w określonym dniu miesiąca
+    lub gdy od ostatniego zarejestrowanego odczytu upłynęło zbyt wiele dni.
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensor gazomierza G.EN. Gaz
+      icon: mdi:counter
+      description: Wybierz sensor stanu licznika z integracji G.EN. Gaz.
+      input:
+        meter_sensor:
+          name: Sensor stanu licznika gazu
+          description: Sensor raportujący stan gazomierza w m³ (np. sensor.g_en_gaz_energia_*_meter_reading).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: gas
+    schedule_section:
+      name: Harmonogram przypomnień
+      icon: mdi:calendar-clock
+      description: Wybierz dzień i godzinę comiesięcznego przypomnienia.
+      input:
+        reminder_day:
+          name: Dzień miesiąca
+          description: Dzień miesiąca, w którym ma nastąpić przypomnienie (np. 28. dzień miesiąca przed zamknięciem okresu).
+          default: 28
+          selector:
+            number:
+              min: 1
+              max: 31
+              unit_of_measurement: dzień
+              mode: box
+        reminder_time:
+          name: Godzina przypomnienia
+          description: Godzina wysłania powiadomienia.
+          default: "18:00:00"
+          selector:
+            time: {}
+        max_days_without_reading:
+          name: Maksymalna liczba dni bez odczytu (opcjonalnie)
+          description: Jeśli od ostatniego odczytu minęło więcej dni, przypomnienie wyśle się niezależnie od dnia miesiąca (0 = wyłączone).
+          default: 35
+          selector:
+            number:
+              min: 0
+              max: 90
+              unit_of_measurement: dni
+              mode: box
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje (opcjonalnie)
+          description: Własne akcje wykonywane w momencie przypomnienia.
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: time
+    at: !input reminder_time
+
+variables:
+  meter_entity: !input meter_sensor
+  target_day: !input reminder_day
+  max_days: !input max_days_without_reading
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set today = now() %}
+      {% set is_target_day = (today.day == (target_day | int)) %}
+      {% set last_date_str = state_attr(meter_entity, 'reading_date') %}
+      {% set dt = as_datetime(last_date_str) if last_date_str else None %}
+      {% set days_since = (today.date() - dt.date()).days if dt is not none else 999 %}
+      {% set is_overdue = ((max_days | int) > 0 and days_since >= (max_days | int)) %}
+      {{ is_target_day or is_overdue }}
+
+action:
+  - alias: "Wyślij przypomnienie o odczycie licznika"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "📊 G.EN. Gaz: Czas na odczyt licznika gazu"
+    message: >-
+      {% set last_val = states(meter_entity) %}
+      {% set last_date = state_attr(meter_entity, 'reading_date') %}
+      {% set meter_no = state_attr(meter_entity, 'device_number') %}
+      Pamiętaj o spisaniu i podaniu bieżącego stanu gazomierza{% if meter_no %} (licznik nr {{ meter_no }}){% endif %}.
+      Poprzedni zarejestrowany odczyt: {{ last_val }} m³{% if last_date %} (z dnia {{ last_date }}){% endif %}.
+    data:
+      tag: "gen-gaz-meter-reminder-{{ meter_entity }}"
+      notification_icon: "mdi:counter"
+      actions:
+        - action: "URI"
+          title: "Otwórz eBOK G.EN."
+          uri: "https://ebok.gen.com.pl"
+  - sequence: !input custom_actions

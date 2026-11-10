@@ -1,1 +1,87 @@
-{"config": {"step": {"user": {"title": "G.EN. Gaz Energia", "description": "Podaj dane logowania do eBOK G.EN. Gaz Energia.", "data": {"customer_id": "Identyfikator klienta", "password": "Hasło"}}}, "error": {"cannot_connect": "Nie można połączyć się z eBOK G.EN.", "invalid_auth": "Nieprawidłowy identyfikator klienta lub hasło"}, "abort": {"already_configured": "Ten klient jest już skonfigurowany."}}}
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "G.EN. Gaz Energia",
+        "description": "Enter your login credentials for G.EN. Gaz Energia eBOK.",
+        "data": {
+          "customer_id": "Customer ID",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with G.EN. Gaz Energia",
+        "description": "Enter the new password for customer {customer_id}.",
+        "data": {
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure G.EN. Gaz Energia",
+        "description": "Update credentials or settings for customer {customer_id}.",
+        "data": {
+          "customer_id": "Customer ID",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to G.EN. eBOK",
+      "invalid_auth": "Invalid customer ID or password",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This customer is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
+      "reauth_failed": "Re-authentication failed.",
+      "reconfigure_successful": "Reconfiguration was successful.",
+      "reconfigure_entry_not_found": "Reconfiguration entry not found."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "G.EN. Gaz Energia options",
+        "description": "Configure polling interval for G.EN. Gaz eBOK.",
+        "data": {
+          "scan_interval": "Update interval (minutes)",
+          "enable_analytics": "Enable analytical entities"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_balance": { "name": "Total balance" },
+      "balance": { "name": "Balance" },
+      "amount_to_pay": { "name": "Amount to pay" },
+      "last_invoice": { "name": "Last invoice" },
+      "unread": { "name": "Unread messages" },
+      "tariff": { "name": "Tariff" },
+      "contract": { "name": "Contract number" },
+      "meter_reading": { "name": "Gas meter reading" },
+      "meter_number": { "name": "Gas meter number" },
+      "previous_reading": { "name": "Previous reading" },
+      "consumption_since_reading": { "name": "Consumption since previous reading (m³)" },
+      "consumption_since_reading_kwh": { "name": "Consumption since previous reading (kWh)" },
+      "conversion_factor": { "name": "Conversion factor m³ → kWh" },
+      "next_advance": { "name": "Next advance" },
+      "next_advance_m3": { "name": "Next advance (m³)" },
+      "next_advance_kwh": { "name": "Next advance (kWh)" },
+      "advance_plan_total": { "name": "Advance plan total" },
+      "advance_plan_m3": { "name": "Advance plan (m³)" },
+      "advance_plan_kwh": { "name": "Advance plan (kWh)" },
+      "history_total_m3": { "name": "Historical gas consumption (m³)" },
+      "history_total_kwh": { "name": "Historical gas consumption (kWh)" },
+      "actual_invoice_cost_6m": { "name": "Invoice cost — 6 months" },
+      "actual_invoice_cost_12m": { "name": "Invoice cost — 12 months" },
+      "actual_consumption_12m_m3": { "name": "Actual consumption — 12 months (m³)" },
+      "actual_consumption_12m_kwh": { "name": "Actual consumption — 12 months (kWh)" },
+      "actual_cost_per_m3": { "name": "Actual gas cost (m³)" },
+      "actual_cost_per_kwh": { "name": "Actual gas cost (kWh)" },
+      "plan_cost_per_m3": { "name": "Plan cost (m³)" },
+      "plan_cost_per_kwh": { "name": "Plan cost (kWh)" },
+      "actual_vs_plan_6m": { "name": "Actual 6M vs plan 6M" }
+    }
+  }
+}

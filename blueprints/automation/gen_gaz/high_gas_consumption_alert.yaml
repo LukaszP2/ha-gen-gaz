@@ -1,0 +1,98 @@
+blueprint:
+  name: "G.EN. Gaz — Alert o nietypowo wysokim zużyciu gazu"
+  description: >-
+    Wysyła ostrzeżenie o wysokim priorytecie, gdy zużycie gazu zarejestrowane pomiędzy odczytami
+    (sensor Zużycie od poprzedniego odczytu) przekroczy zdefiniowany bezpieczny próg w m³.
+    Pomaga we wczesnym wykryciu awarii kotła, nieszczelności lub niekontrolowanego wychładzania budynku.
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensor zużycia gazu
+      icon: mdi:fire-alert
+      description: Wybierz sensor zużycia od poprzedniego odczytu z integracji G.EN. Gaz.
+      input:
+        consumption_sensor:
+          name: Sensor zużycia od poprzedniego odczytu (m³)
+          description: Sensor raportujący zużycie gazu w m³ pomiędzy dwoma ostatnimi odczytami (np. sensor.g_en_gaz_energia_*_consumption_since_reading).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: gas
+    threshold_section:
+      name: Próg alarmowy
+      icon: mdi:gauge-alert
+      description: Zdefiniuj maksymalne dopuszczalne zużycie gazu w okresie rozliczeniowym.
+      input:
+        max_consumption_m3:
+          name: Próg alarmowy zużycia (m³)
+          description: Zużycie w m³, powyżej którego wysyłane jest natychmiastowe powiadomienie alarmowe.
+          default: 150
+          selector:
+            number:
+              min: 10
+              max: 2000
+              step: 10
+              unit_of_measurement: m³
+              mode: box
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje ratunkowe (opcjonalnie)
+          description: Własne akcje wykonywane w momencie wykrycia anomalii (np. syrena, włączenie świateł na czerwono, odcięcie elektrozaworu gazu).
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: state
+    entity_id: !input consumption_sensor
+
+variables:
+  cons_sensor: !input consumption_sensor
+  max_m3: !input max_consumption_m3
+
+condition:
+  # Sprawdź dostępność i przekroczenie progu
+  - condition: template
+    value_template: >-
+      {% set val = states(cons_sensor) %}
+      {% if val in ['unavailable', 'unknown', 'none', ''] %}
+        false
+      {% else %}
+        {{ (val | float(0)) >= (max_m3 | float(0)) }}
+      {% endif %}
+
+action:
+  - alias: "Wyślij alert o wysokim zużyciu gazu"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "🚨 G.EN. Gaz: Wykryto bardzo wysokie zużycie gazu!"
+    message: >-
+      {% set cons = states(cons_sensor) | float(0) %}
+      Zarejestrowane zużycie gazu wyniosło {{ cons | round(2) }} m³ i przekroczyło ustalony limit bezpieczeństwa ({{ max_m3 }} m³).
+      Sprawdź instalację gazową, nastawy kotła CO/CWU oraz stan liczydła gazomierza!
+    data:
+      tag: "gen-gaz-high-consumption-{{ cons_sensor }}"
+      notification_icon: "mdi:alert-decagram"
+      push:
+        sound: "critical"
+        interruption_level: "critical"
+  - sequence: !input custom_actions

@@ -2,6 +2,11 @@ update_advance_plan:
   name: Zmień plan zaliczek G.EN. Gaz
   description: Wyślij formularz zmiany planu zaliczek do eBOK G.EN. Gaz. Wysyłane dopiero po ręcznym wykonaniu akcji.
   fields:
+    contract_number:
+      name: Numer umowy
+      description: Numer umowy gazowej (opcjonalny, domyślnie pierwsza przypisana do konta).
+      selector:
+        text: {}
     reason:
       name: Powód
       description: Powód zmiany, maksymalnie 250 znaków.

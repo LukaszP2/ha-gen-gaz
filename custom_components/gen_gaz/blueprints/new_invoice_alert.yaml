@@ -1,0 +1,78 @@
+blueprint:
+  name: "G.EN. Gaz — Alert o wystawieniu nowej faktury"
+  description: >-
+    Wysyła powiadomienie na telefon natychmiast po wykryciu nowo wystawionej faktury
+    w portalu eBOK G.EN. Gaz Energia, podając numer faktury, kwotę oraz termin płatności.
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    entities_section:
+      name: Sensor faktury G.EN. Gaz
+      icon: mdi:file-document-outline
+      description: Wybierz sensor ostatniej faktury z integracji G.EN. Gaz.
+      input:
+        last_invoice_sensor:
+          name: Sensor ostatniej faktury
+          description: Sensor raportujący kwotę ostatniej faktury (np. sensor.g_en_gaz_energia_*_last_invoice).
+          selector:
+            entity:
+              filter:
+                - integration: gen_gaz
+                  domain: sensor
+                  device_class: monetary
+    actions_section:
+      name: Powiadomienia i akcje
+      icon: mdi:bell-badge
+      description: Skonfiguruj urządzenie odbiorcze oraz opcjonalne akcje.
+      input:
+        notify_device:
+          name: Urządzenie do powiadomień
+          description: Telefon lub tablet z aplikacją Home Assistant Companion.
+          selector:
+            device:
+              filter:
+                integration: mobile_app
+        custom_actions:
+          name: Dodatkowe akcje (opcjonalnie)
+          description: Własne akcje wykonywane po odebraniu nowej faktury (np. powiadomienie na e-mail, wpis do kalendarza).
+          default: []
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: state
+    entity_id: !input last_invoice_sensor
+    attribute: invoice_number
+
+variables:
+  invoice_sensor: !input last_invoice_sensor
+
+condition:
+  # Wyklucz stany niedostępne oraz puste numery faktur
+  - condition: template
+    value_template: >-
+      {% set new_inv = trigger.to_state.attributes.invoice_number if trigger.to_state is defined else state_attr(invoice_sensor, 'invoice_number') %}
+      {% set old_inv = trigger.from_state.attributes.invoice_number if trigger.from_state is defined else None %}
+      {{ new_inv is not none and new_inv != '' and new_inv != old_inv and old_inv is not none }}
+
+action:
+  - alias: "Wyślij powiadomienie o nowej fakturze"
+    domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "📄 G.EN. Gaz: Wystawiono nową fakturę"
+    message: >-
+      {% set inv_no = state_attr(invoice_sensor, 'invoice_number') %}
+      {% set amount = states(invoice_sensor) %}
+      {% set deadline = state_attr(invoice_sensor, 'payment_deadline') %}
+      {% set issued = state_attr(invoice_sensor, 'issued') %}
+      W eBOK G.EN. Gaz pojawiła się nowa faktura {{ inv_no }} na kwotę {{ amount }} PLN{% if deadline %} (termin płatności: {{ deadline }}){% endif %}.
+    data:
+      tag: "gen-gaz-new-invoice-{{ invoice_sensor }}"
+      notification_icon: "mdi:receipt-text"
+      channel: "Billing"
+  - sequence: !input custom_actions
