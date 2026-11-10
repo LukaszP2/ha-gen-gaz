@@ -139,3 +139,26 @@ class TestGenGazInit(unittest.IsolatedAsyncioTestCase):
         args = coordinator.api.update_advance_plan.call_args[0]
         self.assertEqual(args[0], "UM/456")
         self.assertEqual(args[1]["reason"], "Update UM 456")
+
+    def test_manifest_keys_order(self) -> None:
+        """Test that manifest.json keys follow Home Assistant / hassfest order: domain, name, then alphabetical."""
+        import json
+        from pathlib import Path
+
+        manifest_path = Path("custom_components/gen_gaz/manifest.json")
+        self.assertTrue(manifest_path.is_file(), "manifest.json does not exist")
+
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+
+        keys = list(data.keys())
+        self.assertGreaterEqual(len(keys), 2, "Manifest should have at least domain and name")
+        self.assertEqual(keys[0], "domain", "First key must be 'domain'")
+        self.assertEqual(keys[1], "name", "Second key must be 'name'")
+
+        remaining_keys = keys[2:]
+        self.assertEqual(
+            remaining_keys,
+            sorted(remaining_keys),
+            f"Remaining keys must be alphabetically sorted: {remaining_keys} != {sorted(remaining_keys)}",
+        )

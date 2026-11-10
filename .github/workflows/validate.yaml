@@ -70,6 +70,7 @@ jobs:
         with:
           category: "integration"
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          ignore: "brands description topics"
 
   hassfest:
     name: Home Assistant Hassfest

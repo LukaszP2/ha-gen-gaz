@@ -1,17 +1,17 @@
 {
   "domain": "gen_gaz",
   "name": "G.EN. Gaz Energia",
-  "version": "0.7.0",
-  "documentation": "https://github.com/LukaszP2/ha-gen-gaz",
-  "requirements": [],
   "codeowners": [
     "@LukaszP2"
   ],
   "config_flow": true,
-  "iot_class": "cloud_polling",
-  "integration_type": "service",
   "dependencies": [
     "recorder"
   ],
-  "issue_tracker": "https://github.com/LukaszP2/ha-gen-gaz/issues"
+  "documentation": "https://github.com/LukaszP2/ha-gen-gaz",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/LukaszP2/ha-gen-gaz/issues",
+  "requirements": [],
+  "version": "0.7.0"
 }

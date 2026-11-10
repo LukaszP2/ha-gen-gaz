@@ -31,8 +31,11 @@ import json
 with open('${MANIFEST}', 'r+') as f:
     d = json.load(f)
     d['version'] = '${NEW_VER}'
+    domain = d.pop('domain')
+    name = d.pop('name')
+    sorted_d = {'domain': domain, 'name': name, **{k: d[k] for k in sorted(d)}}
     f.seek(0)
-    json.dump(d, f, indent=2, ensure_ascii=False)
+    json.dump(sorted_d, f, indent=2, ensure_ascii=False)
     f.write('\n')
     f.truncate()
 "
